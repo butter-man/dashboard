@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Service Dashboard</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.2/main.min.css' rel='stylesheet' />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.2/main.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    #calendar-card {
+      margin-right: 20px;
+    }
+    #earnings-card {
+      margin-left: auto;
+      width: 100%;
+    }
+    .calendar-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .calendar-container .fc {
+      max-height: 600px;
+      overflow: auto;
+    }
+    .modal-body {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">Auto Service</a>
+  </nav>
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <!-- Card Example -->
+      <div class="col-md-6">
+        <div class="card text-white bg-primary mb-3">
+          <div class="card-header">Current Repairs</div>
+          <div class="card-body">
+            <h5 class="card-title">15 Ongoing</h5>
+            <p class="card-text">Number of repairs currently in progress.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card text-white bg-success mb-3">
+          <div class="card-header">Completed Repairs</div>
+          <div class="card-body">
+            <h5 class="card-title">120 Completed</h5>
+            <p class="card-text">Number of repairs completed this month.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <!-- Calendar Card -->
+      <div class="col-md-4 calendar-container">
+        <div class="card mb-3" id="calendar-card">
+          <div class="card-header">Calendar</div>
+          <div class="card-body">
+            <div id="calendar"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Earnings Card -->
+      <div class="col-md-8">
+        <div class="card mb-3" id="earnings-card">
+          <div class="card-header">Earnings</div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <label for="date">Select Date:</label>
+                <input type="date" id="date" class="form-control" onchange="updateEarnings()">
+              </div>
+              <div class="col-md-6">
+                <h5 class="card-title" id="earnings-title">Earnings for Selected Date: $0</h5>
+                <p class="card-text">Total amount earned on the selected date.</p>
+              </div>
+              <div class="row mt-4">
+                <div class="col-md-12">
+                  <canvas id="earningsChart"></canvas>
+                </div>
+              </div>
+              <div class="row mt-4">
+                <div class="col-md-12" id="mechanic-info" style="display: none;">
+                  <h5 class="card-title" id="mechanic-name"></h5>
+                  <ul id="mechanic-details" class="list-group"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Table Example -->
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header">
+            Recent Repairs
+          </div>
+          <div class="card-body">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">Client Name</th>
+                  <th scope="col">Car Number</th>
+                  <th scope="col">Repair Problem</th>
+                  <th scope="col">Car Brand</th>
+                  <th scope="col">Car Model</th>
+                  <th scope="col">Repair Price</th>
+                  <th scope="col">Mechanic</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>John Doe</td>
+                  <td>ABC-1234</td>
+                  <td>Engine Overhaul</td>
+                  <td>Toyota</td>
+                  <td>Corolla</td>
+                  <td>$500</td>
+                  <td>Mike</td>
+                  <td><span class="badge badge-success">Completed</span></td>
+                </tr>
+                <tr>
+                  <td>Jane Smith</td>
+                  <td>XYZ-5678</td>
+                  <td>Brake Repair</td>
+                  <td>Honda</td>
+                  <td>Civic</td>
+                  <td>$300</td>
+                  <td>Steve</td>
+                  <td><span class="badge badge-warning">In Progress</span></td>
+                </tr>
+                <tr>
+                  <td>Bob Johnson</td>
+                  <td>LMN-9101</td>
+                  <td>Transmission Fix</td>
+                  <td>Ford</td>
+                  <td>Focus</td>
+                  <td>$800</td>
+                  <td>Paul</td>
+                  <td><span class="badge badge-danger">Pending</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Repair Details -->
+  <div class="modal fade" id="repairDetailModal" tabindex="-1" role="dialog" aria-labelledby="repairDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="repairDetailModalLabel">Repair Details</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="repair-detail-content"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendar');
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: [
+          {
+            title: 'Engine Overhaul - ABC-1234',
+            start: '2024-08-10',
+            description: 'Mechanic: Mike, Phone: 123-456-7890',
+            extendedProps: {
+              mechanic: 'Mike',
+              phone: '123-456-7890',
+              carNumber: 'ABC-1234',
+              repairDetails: 'Engine overhaul, replaced pistons and cylinder head'
+            }
+          },
+          {
+            title: 'Brake Repair - XYZ-5678',
+            start: '2024-08-15',
+            description: 'Mechanic: Steve, Phone: 987-654-3210',
+            extendedProps: {
+              mechanic: 'Steve',
+              phone: '987-654-3210',
+              carNumber: 'XYZ-5678',
+              repairDetails: 'Brake fluid change, brake lines inspection'
+            }
+          }
+        ],
+        eventClick: function(info) {
+          const { title, extendedProps } = info.event;
+          const { mechanic, phone, carNumber, repairDetails } = extendedProps;
+
+          document.getElementById('repair-detail-content').innerHTML = `
+            <strong>Title:</strong> ${title}<br>
+            <strong>Car Number:</strong> ${carNumber}<br>
+            <strong>Mechanic:</strong> ${mechanic}<br>
+            <strong>Phone:</strong> ${phone}<br>
+            <strong>Details:</strong> ${repairDetails}
+          `;
+          $('#repairDetailModal').modal('show');
+        }
+      });
+      calendar.render();
+
+      const ctx = document.getElementById('earningsChart').getContext('2d');
+      let earningsChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.2)',
+              'rgba(54, 162, 235, 0.2)',
+              'rgba(255, 206, 86, 0.2)',
+              'rgba(75, 192, 192, 0.2)',
+              'rgba(153, 102, 255, 0.2)',
+              'rgba(255, 159, 64, 0.2)'
+            ],
+            borderColor: [
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)',
+              'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, item) => {
+            if (item.length) {
+              const index = item[0].index;
+              showMechanicInfo(index);
+            }
+          }
+        }
+      });
+
+      function updateEarnings() {
+        var date = document.getElementById('date').value;
+        var earnings = 0;
+        var mechanicsData = [
+          { 
+            name: 'Mike', 
+            repairs: [
+              { carNumber: 'ABC-1234', price: 500, details: 'Engine overhaul, replaced pistons and cylinder head' },
+              { carNumber: 'DEF-5678', price: 250, details: 'Brake pads and rotors replacement' }
+            ]
+          },
+          { 
+            name: 'Steve', 
+            repairs: [
+              { carNumber: 'XYZ-5678', price: 300, details: 'Brake fluid change, brake lines inspection' }
+            ]
+          },
+          { 
+            name: 'Paul', 
+            repairs: [
+              { carNumber: 'LMN-9101', price: 800, details: 'Transmission overhaul, replaced gears and bearings' }
+            ]
+          }
+        ];
+
+        // Calculate earnings for the selected date
+        if (date) {
+          earnings = mechanicsData.reduce((acc, mechanic) => 
+            acc + mechanic.repairs.reduce((sum, repair) => sum + repair.price, 0), 0);
+        }
+
+        document.getElementById('earnings-title').innerText = 'Earnings for Selected Date: $' + earnings;
+
+        // Update Chart
+        earningsChart.data.labels = mechanicsData.map(mechanic => mechanic.name);
+        earningsChart.data.datasets[0].data = mechanicsData.map(mechanic => 
+          mechanic.repairs.reduce((sum, repair) => sum + repair.price, 0));
+        earningsChart.update();
+
+        // Store mechanic data for later use
+        earningsChart.data.mechanicsData = mechanicsData;
+        document.getElementById('mechanic-info').style.display = 'none';
+      }
+
+      function showMechanicInfo(index) {
+        const mechanic = earningsChart.data.mechanicsData[index];
+        document.getElementById('mechanic-name').innerText = `${mechanic.name} - Total Earnings: $${mechanic.repairs.reduce((sum, repair) => sum + repair.price, 0)}`;
+
+        const detailsList = document.getElementById('mechanic-details');
+        detailsList.innerHTML = '';
+
+        mechanic.repairs.forEach((repair) => {
+          const listItem = document.createElement('li');
+          listItem.className = 'list-group-item';
+          listItem.innerHTML = `Car Number: ${repair.carNumber}, Repair Price: $${repair.price}`;
+          listItem.onclick = () => showRepairDetails(repair);
+          detailsList.appendChild(listItem);
+        });
+
+        document.getElementById('mechanic-info').style.display = 'block';
+      }
+
+      function showRepairDetails(repair) {
+        document.getElementById('repair-detail-content').innerHTML = `
+          <strong>Car Number:</strong> ${repair.carNumber}<br>
+          <strong>Repair Price:</strong> $${repair.price}<br>
+          <strong>Details:</strong> ${repair.details}
+        `;
+        $('#repairDetailModal').modal('show');
+      }
+
+      function setTodayDate() {
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById('date').value = today;
+        document.getElementById('date').max = today;
+        updateEarnings();
+      }
+
+      setTodayDate();
+    });
+  </script>
+</body>
+</html>
